@@ -80,10 +80,11 @@ async function main ( operation, filePath )  {
             }), {retrySecs: 5});
     if (operation == "backup")  {
         const dir = makeEmptyTempDir();
+        var client;
         try {
-            const client = await page.target().createCDPSession();
+            client = await page.target().createCDPSession();
         } catch(err) {
-            const client = page._client;
+            client = page._client;
         }
         await client.send('Page.setDownloadBehavior',
                           {behavior: 'allow', downloadPath: dir});
