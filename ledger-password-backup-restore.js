@@ -171,15 +171,12 @@ async function main (  )  {
         usage();
     } else   {
         var nicks = argv.slice(2);
-        // await appendNicks(["deltadental"],
-        //     "/tmp/5a6c01c0-ee68-11ec-8885-eb82480cea07",
-        //     "/tmp/5a6c01c0-ee68-11ec-8885-eb82480cea07.json");
         await appendLedgerPasswords(nicks);
     }
 }
 
 if (require.main === module)  {
-        main();
+    main();
 }
 
 // Local Variables:
