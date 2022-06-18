@@ -70,7 +70,7 @@ class LedgerBackupRestore {
         if (fs.existsSync(filename)) {
             url = `file://${filename}`;
         } else   {
-            console.log(`${filename} doesn't exist. falling back to live website`);
+            console.warn(`${filename} doesn't exist. falling back to live website`);
             url = "https://ledgerhq.github.io/passwords-backup/"
         }
         await this._page.goto(url);
