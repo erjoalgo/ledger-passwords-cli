@@ -5,15 +5,8 @@ var fs = require('fs');
 var uuid = require('uuid');
 const { argv } = require('process');
 
-function makeEmptyTempDir (  )  {
-    var dir = `/tmp/${uuid.v1()}`;
-    console.log("DEBUG dkko value of dir: "+dir);
-    fs.mkdirSync(dir);
-    return dir;
-}
-
-function sleep ( secs )  {
-    return new Promise(function(resolve, reject)  {
+async function sleep ( secs )  {
+    await new Promise(function(resolve, reject)  {
         setTimeout(resolve, secs * 1000);
     });
 }
@@ -39,90 +32,166 @@ async function waitFor ( expr, options )  {
     throw `timed out waiting for: ${expr}`
 }
 
-async function waitForCompletedDownload ( dir, secsLeft )  {
-    return await waitFor(
-        () => {
-            var files = fs.readdirSync(dir);
-            console.log("DEBUG 6vi6 value of dir: "+dir);
-            console.log("DEBUG sre6 value of files: "+files);
-            if (files.length > 0 && ! /crdownload/i.test(files[0]))  {
-                return dir + '/' + files[0];
-            }  else   {
-                throw `downloaded file not ready at dir ${dir}`;
-            }
-        }, {retrySecs: secsLeft, maxRetries: 60});
-}
 
-async function main ( operation, filePath )  {
-    const browser = await puppeteer.launch({headless: false});
-    const page = await browser.newPage();
-    var filename = __dirname + '/ledger-backup-html/Passwords Backup.html';
-    var url;
-    console.log("DEBUG 4eet value of filename: "+filename);
-    if (fs.existsSync(filename)) {
-        url = `file://${filename}`;
-    } else   {
-        console.log(`${filename} doesn't exist. falling back to live website`);
-        url = "https://ledgerhq.github.io/passwords-backup/"
+
+class LedgerBackupRestore {
+    constructor() {
+        var _browser;
+        var _page;
     }
-    await page.goto(url);
-    // connect and wait for the backup and restore buttons to become clickable
-    await waitFor(
-        () => page.evaluate(
-            () => {
+
+    async _init (  )  {
+        this._browser = await puppeteer.launch({headless: false});
+    }
+
+    async close (  )  {
+        await browser.close();
+    }
+
+    async backup ( destFile )  {
+        await this._backupRestore('backup', destFile);
+    }
+
+    async restore ( fromFile )  {
+        await this._backupRestore('restore', fromFile);
+    }
+
+    async _backupRestore ( operation, filePath )  {
+        if (["backup", "restore"].indexOf(operation)<0)  {
+            throw `unsupported operation: ${operation}`;
+        }
+        if (!this._browser)  {
+            await this._init();
+        }
+        if (!this._page)  {
+            this._page = await this._browser.newPage();
+        }
+        var filename = __dirname + '/ledger-backup-html/Passwords Backup.html';
+        var url;
+        console.log("DEBUG 4eet value of filename: "+filename);
+        if (fs.existsSync(filename)) {
+            url = `file://${filename}`;
+        } else   {
+            console.log(`${filename} doesn't exist. falling back to live website`);
+            url = "https://ledgerhq.github.io/passwords-backup/"
+        }
+        await this._page.goto(url);
+        // connect and wait for the backup and restore buttons to become clickable
+        await waitFor(
+            () => this._page.evaluate(
+                () => {
+                    var backup = [...document.querySelectorAll("button")].filter(
+                        x => x.textContent == "Backup")[0];
+                    if (!backup.offsetParent)  {
+                        [...document.querySelectorAll("button")].filter(
+                            x => x.textContent == "Connect")[0].click();
+                        throw "backup button not visible yet";
+                    }
+                }), {retrySecs: 5});
+        if (operation == "backup")  {
+            const dir = this._makeEmptyTempDir();
+            var client;
+            try {
+                client = await this._page.target().createCDPSession();
+            } catch(err) {
+                client = this._page._client;
+            }
+            await client.send('Page.setDownloadBehavior',
+                              {behavior: 'allow', downloadPath: dir});
+            await waitFor(() => this._page.evaluate(() => {
                 var backup = [...document.querySelectorAll("button")].filter(
                     x => x.textContent == "Backup")[0];
-                if (!backup.offsetParent)  {
-                    [...document.querySelectorAll("button")].filter(
-                        x => x.textContent == "Connect")[0].click();
-                    throw "backup button not visible yet";
-                }
-            }), {retrySecs: 5});
-    if (operation == "backup")  {
-        const dir = makeEmptyTempDir();
-        var client;
-        try {
-            client = await page.target().createCDPSession();
-        } catch(err) {
-            client = page._client;
+                backup.click();
+            }));
+            var download = await this._waitForCompletedDownload(dir);
+            fs.renameSync(download, filePath);
+        } else if (operation == "restore")  {
+            console.log(`waiting for file chooser`);
+            var fileChooserPromise = this._page.waitForFileChooser({timeout: 60 * 1000});
+            await waitFor(async () => this._page.click('.RestoreButton'))
+            console.log("DEBUG uqfg value of filePath: "+filePath);
+            (await fileChooserPromise).accept([filePath]);
+            await sleep(20);
+        } else   {
+            throw `unsupported operation: ${operation}`;
         }
-        await client.send('Page.setDownloadBehavior',
-                          {behavior: 'allow', downloadPath: dir});
-        await waitFor(() => page.evaluate(() => {
-            var backup = [...document.querySelectorAll("button")].filter(
-                x => x.textContent == "Backup")[0];
-            backup.click();
-        }));
-        var download = await waitForCompletedDownload(dir);
-        fs.renameSync(download, filePath);
-    } else if (operation == "restore")  {
-        console.log(`waiting for file chooser`);
-        var fileChooserPromise = page.waitForFileChooser({timeout: 60 * 1000});
-        await waitFor(async () => page.click('.RestoreButton'))
-        console.log("DEBUG uqfg value of filePath: "+filePath);
-        (await fileChooserPromise).accept([filePath]);
-        await sleep(20);
-    } else   {
-        throw `unsupported operation: ${operation}`;
     }
-    await browser.close();
+
+    _makeEmptyTempDir (  )  {
+        var dir = `/tmp/${uuid.v1()}`;
+        console.log("DEBUG dkko value of dir: "+dir);
+        fs.mkdirSync(dir);
+        return dir;
+    }
+
+    async _waitForCompletedDownload ( dir, secsLeft )  {
+        return await waitFor(
+            () => {
+                var files = fs.readdirSync(dir);
+                console.log("DEBUG 6vi6 value of dir: "+dir);
+                console.log("DEBUG sre6 value of files: "+files);
+                if (files.length > 0 && ! /crdownload/i.test(files[0]))  {
+                    return dir + '/' + files[0];
+                }  else   {
+                    throw `downloaded file not ready at dir ${dir}`;
+                }
+            }, {retrySecs: secsLeft, maxRetries: 60});
+    }
+}
+
+function genTempFilename (  )  {
+    return `/tmp/${uuid.v1()}`;
+}
+
+async function appendNicks ( nicks, backupFilename, restoreFilename )  {
+    const dataString = fs.readFileSync(backupFilename, 'utf8');
+    const data = JSON.parse(dataString);
+    var newNickData = nicks.map((nick) => {
+        return {
+            "nickname": nick,
+            "charsets": [
+                "UPPERCASE",
+                "LOWERCASE",
+                "NUMBERS"
+            ]
+        }
+    });
+    data.parsed.push(...newNickData);
+    fs.writeFileSync(restoreFilename, JSON.stringify(data, null, 4));
+}
+
+async function appendLedgerPasswords ( nicks )  {
+    var uid = uuid.v1();
+    const backupFilename = `/tmp/${uid}-backup.json`;
+    const restoreFilename = `/tmp/${uid}-restore.json`;
+    var backupRestore = new LedgerBackupRestore();
+    await backupRestore.backup(backupFilename);
+    await appendNicks(nicks, backupFilename, restoreFilename);
+    await backupRestore.restore(restoreFilename);
 }
 
 function usage (  )  {
-    console.log(`ledger-password-backup-restore.js [backup|restore] <file-path>`);
+    console.log(`ledger-password-backup-restore.js <nick1> [<nick2> ...]`);
 }
 
-if (require.main === module)  {
-    if (argv.length != 4)  {
+async function main (  )  {
+    if (argv.length <= 2)  {
         // the first two args are the interpreter, this script
         usage();
     } else   {
-        const operation = argv[2];
-        const filePath = argv[3];
-        main(operation, filePath);
+        var nicks = argv.slice(2);
+        console.log("DEBUG 8ct3 value of nicks: "+nicks);
+        // await appendNicks(["deltadental"],
+        //     "/tmp/5a6c01c0-ee68-11ec-8885-eb82480cea07",
+        //     "/tmp/5a6c01c0-ee68-11ec-8885-eb82480cea07.json");
+        await appendLedgerPasswords(nicks);
     }
 }
 
+if (require.main === module)  {
+        main();
+}
+
 // Local Variables:
-// compile-command: "./ledger-password-backup-restore.js restore /tmp/caca.json"
+// compile-command: "./ledger-password-backup-restore.js deltadentalins"
 // End:
