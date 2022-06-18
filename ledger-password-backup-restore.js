@@ -134,10 +134,6 @@ class LedgerBackupRestore {
     }
 }
 
-function genTempFilename (  )  {
-    return `/tmp/${uuid.v1()}`;
-}
-
 async function appendNicks ( nicks, backupFilename, restoreFilename )  {
     const dataString = fs.readFileSync(backupFilename, 'utf8');
     const data = JSON.parse(dataString);
