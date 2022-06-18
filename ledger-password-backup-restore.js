@@ -18,7 +18,6 @@ async function waitFor ( expr, options )  {
     while (maxRetries > 0)  {
         var val;
         try  {
-            console.log("DEBUG trace ledger-password-backup-restore otys");
             val = await expr();
             console.log(`successfully evaluated ${expr}`);
             return val;
@@ -68,7 +67,6 @@ class LedgerBackupRestore {
         }
         var filename = __dirname + '/ledger-backup-html/Passwords Backup.html';
         var url;
-        console.log("DEBUG 4eet value of filename: "+filename);
         if (fs.existsSync(filename)) {
             url = `file://${filename}`;
         } else   {
@@ -109,7 +107,6 @@ class LedgerBackupRestore {
             console.log(`waiting for file chooser`);
             var fileChooserPromise = this._page.waitForFileChooser({timeout: 60 * 1000});
             await waitFor(async () => this._page.click('.RestoreButton'))
-            console.log("DEBUG uqfg value of filePath: "+filePath);
             (await fileChooserPromise).accept([filePath]);
             await sleep(20);
         } else   {
@@ -119,7 +116,6 @@ class LedgerBackupRestore {
 
     _makeEmptyTempDir (  )  {
         var dir = `/tmp/${uuid.v1()}`;
-        console.log("DEBUG dkko value of dir: "+dir);
         fs.mkdirSync(dir);
         return dir;
     }
@@ -128,8 +124,7 @@ class LedgerBackupRestore {
         return await waitFor(
             () => {
                 var files = fs.readdirSync(dir);
-                console.log("DEBUG 6vi6 value of dir: "+dir);
-                console.log("DEBUG sre6 value of files: "+files);
+                console.log(`waiting for download in ${dir}: ${files}`);
                 if (files.length > 0 && ! /crdownload/i.test(files[0]))  {
                     return dir + '/' + files[0];
                 }  else   {
@@ -180,7 +175,6 @@ async function main (  )  {
         usage();
     } else   {
         var nicks = argv.slice(2);
-        console.log("DEBUG 8ct3 value of nicks: "+nicks);
         // await appendNicks(["deltadental"],
         //     "/tmp/5a6c01c0-ee68-11ec-8885-eb82480cea07",
         //     "/tmp/5a6c01c0-ee68-11ec-8885-eb82480cea07.json");
