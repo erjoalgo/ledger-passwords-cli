@@ -1,0 +1,11 @@
+#+OPTIONS: ^:nil
+#+OPTIONS: toc:nil
+#+OPTIONS: html-postamble:nil
+#+OPTIONS: num:nil
+#+TITLE: Ledger Passwords Append
+
+#+BEGIN_SRC bash
+! npm install <TODO>
+./ledger-password-backup-restore.js <nick1> [<nick2> ...]
+#+END_SRC
+
