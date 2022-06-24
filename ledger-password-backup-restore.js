@@ -81,8 +81,13 @@ class LedgerBackupRestore {
                     var backup = [...document.querySelectorAll("button")].filter(
                         x => x.textContent == "Backup")[0];
                     if (!backup.offsetParent)  {
-                        [...document.querySelectorAll("button")].filter(
-                            x => x.textContent == "Connect")[0].click();
+                        var connect = [...document.querySelectorAll("button")]
+                            .filter(x => x.textContent == "Connect")[0];
+                        if (!connect)  {
+                            throw "connect button not found!"
+                        } else   {
+                            connect.click();
+                        }
                         throw "backup button not visible yet";
                     }
                 }), {retrySecs: 5});
