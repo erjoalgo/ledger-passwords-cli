@@ -90,7 +90,7 @@ class LedgerBackupRestore {
                         }
                         throw "backup button not visible yet";
                     }
-                }), {retrySecs: 5});
+                }), {retrySecs: 5, maxRetries: 99});
         if (operation == "backup")  {
             const dir = this._makeEmptyTempDir();
             var client;
