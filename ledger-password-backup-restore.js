@@ -44,7 +44,7 @@ class LedgerBackupRestore {
     }
 
     async close (  )  {
-        await browser.close();
+        await this._browser.close();
     }
 
     async backup ( destFile )  {
@@ -159,6 +159,7 @@ async function appendLedgerPasswords ( nicks )  {
     await backupRestore.backup(backupFilename);
     await appendNicks(nicks, backupFilename, restoreFilename);
     await backupRestore.restore(restoreFilename);
+    backupRestore.close();
 }
 
 function usage (  )  {
