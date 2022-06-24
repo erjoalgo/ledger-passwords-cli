@@ -111,8 +111,9 @@ class LedgerBackupRestore {
         } else if (operation == "restore")  {
             console.log(`waiting for file chooser`);
             var fileChooserPromise = this._page.waitForFileChooser({timeout: 60 * 1000});
-            await waitFor(async () => this._page.click('.RestoreButton'))
-            (await fileChooserPromise).accept([filePath]);
+            await waitFor(() => this._page.click('.RestoreButton'))
+            var fileChooser = await fileChooserPromise;
+            await fileChooser.accept([filePath]);
             await sleep(20);
         } else   {
             throw `unsupported operation: ${operation}`;
