@@ -65,7 +65,7 @@ class LedgerBackupRestore {
         if (!this._page)  {
             this._page = await this._browser.newPage();
         }
-        var filename = __dirname + '/ledger-backup-html/Passwords Backup.html';
+        var filename = __dirname + '/html/Passwords Backup.html';
         var url;
         if (fs.existsSync(filename)) {
             url = `file://${filename}`;
