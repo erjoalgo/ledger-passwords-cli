@@ -139,14 +139,23 @@ class LedgerBackupRestore {
                 }  else   {
                     throw `downloaded file not ready at dir ${dir}`;
                 }
-            }, {retrySecs: secsLeft, maxRetries: 60});
+            }, {retrySecs: secsLeft, maxRetries: 60,
+                desc: "download finished"});
     }
 }
 
 async function appendNicks ( nicks, backupFilename, restoreFilename )  {
     const dataString = fs.readFileSync(backupFilename, 'utf8');
     const data = JSON.parse(dataString);
-    var newNickData = nicks.map((nick) => {
+    const existingNicks = new Set(data.parsed.map(entry => entry.nickname));
+    const dupeNicks = new Set(nicks.filter(nick => existingNicks.has(nick)));
+    if (dupeNicks.size > 0)  {
+        console.warn(
+            `skipping ${dupeNicks.size} existing nicks: `+
+                JSON.stringify(Array.from(dupeNicks)));
+    }
+    var newNickData = nicks.filter(nick => !dupeNicks.has(nick))
+        .map((nick) => {
         return {
             "nickname": nick,
             "charsets": [
