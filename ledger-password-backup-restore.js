@@ -15,20 +15,21 @@ async function waitFor ( expr, options )  {
     let { maxRetries, retrySecs } = options || {};
     retrySecs = retrySecs || 1;
     maxRetries = maxRetries || 60;
+    var desc = options.desc || expr;
     while (maxRetries > 0)  {
         var val;
         try  {
             val = await expr();
-            console.log(`successfully evaluated ${expr}`);
+            console.log(`successfully evaluated ${desc}`);
             return val;
         } catch(err)  {
-            console.log(`error evaluating ${expr}: ${err}. retrying...`);
+            console.log(`error evaluating ${desc}: ${err}. retrying...`);
         }
-        console.log(`waiting for ${expr}`);
+        console.log(`waiting for ${desc}`);
         await sleep(retrySecs);
         maxRetries -= 1;
     }
-    throw `timed out waiting for: ${expr}`
+    throw `timed out waiting for: ${desc}`
 }
 
 
@@ -90,7 +91,8 @@ class LedgerBackupRestore {
                         }
                         throw "backup button not visible yet";
                     }
-                }), {retrySecs: 5, maxRetries: 99});
+                }), {retrySecs: 5, maxRetries: 99,
+                     desc: "backup button becomes visible"});
         if (operation == "backup")  {
             const dir = this._makeEmptyTempDir();
             var client;
@@ -105,13 +107,14 @@ class LedgerBackupRestore {
                 var backup = [...document.querySelectorAll("button")].filter(
                     x => x.textContent == "Backup")[0];
                 backup.click();
-            }));
+            }), {desc: "click backup button"});
             var download = await this._waitForCompletedDownload(dir);
             fs.renameSync(download, filePath);
         } else if (operation == "restore")  {
             console.log(`waiting for file chooser`);
             var fileChooserPromise = this._page.waitForFileChooser({timeout: 60 * 1000});
-            await waitFor(() => this._page.click('.RestoreButton'))
+            await waitFor(() => this._page.click('.RestoreButton'),
+                          {desc: "click restore button"})
             var fileChooser = await fileChooserPromise;
             await fileChooser.accept([filePath]);
             await sleep(20);
