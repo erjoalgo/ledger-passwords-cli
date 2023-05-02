@@ -146,16 +146,9 @@ class LedgerBackupRestore {
 
 async function appendNicks ( nicks, backupFilename, restoreFilename )  {
     const dataString = fs.readFileSync(backupFilename, 'utf8');
-    const data = JSON.parse(dataString);
-    const existingNicks = new Set(data.parsed.map(entry => entry.nickname));
-    const dupeNicks = new Set(nicks.filter(nick => existingNicks.has(nick)));
-    if (dupeNicks.size > 0)  {
-        console.warn(
-            `skipping ${dupeNicks.size} existing nicks: `+
-                JSON.stringify(Array.from(dupeNicks)));
-    }
-    var newNickData = nicks.filter(nick => !dupeNicks.has(nick))
-        .map((nick) => {
+    data = JSON.parse(dataString);
+    const dupeNickEntries = data.parsed.filter(entry => nicks.indexOf(entry.nickname) >= 0);
+    function genEntry ( nick ) {
         return {
             "nickname": nick,
             "charsets": [
@@ -164,7 +157,25 @@ async function appendNicks ( nicks, backupFilename, restoreFilename )  {
                 "NUMBERS"
             ]
         }
-    });
+    }
+    if (dupeNickEntries.length > 0)  {
+        console.warn(
+            `${dupeNickEntries.length} existing nicks: `+
+                JSON.stringify(dupeNickEntries));
+        for (var entry of dupeNickEntries) {
+            var a = JSON.stringify(entry);
+            var b = JSON.stringify(genEntry(entry.nickname));
+            if (a != b) {
+                console.log(`skipping ${entry.nickname}: `+
+                            `new and existing entries not equal: ${a} vs ${b}`);
+                nicks = nicks.filter(nick => nick != entry.nickname);
+            }
+        }
+    }
+    var newNickData = nicks.map(genEntry);
+    console.info("pusing new data: " +JSON.stringify(newNickData, null, 4));
+    data.parsed = data.parsed
+        .filter(entry => nicks.indexOf(entry.nickname)<0);
     data.parsed.push(...newNickData);
     fs.writeFileSync(restoreFilename, JSON.stringify(data, null, 4));
 }
