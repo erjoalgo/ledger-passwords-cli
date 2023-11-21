@@ -4,7 +4,7 @@ set -euo pipefail
 
 cd $( dirname "${BASH_SOURCE[0]}" )
 
-INSTALLS="${HOME}/git/dotfiles/scripts/installs/"
+INSTALLS="${HOME}/git/dotfiles/installs/"
 
 ${INSTALLS}/nodenv.sh
 . ${HOME}/.profile-env
