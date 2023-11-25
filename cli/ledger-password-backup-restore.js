@@ -2,7 +2,7 @@
 
 const puppeteer = require('puppeteer');
 var fs = require('fs');
-var uuid = require('uuid');
+// var uuid = require('uuid');
 const { argv } = require('process');
 
 async function sleep ( secs )  {
@@ -41,7 +41,10 @@ class LedgerBackupRestore {
     }
 
     async _init (  )  {
-        this._browser = await puppeteer.launch({headless: false});
+        console.log("DDEBUG trace ledger-password-backup-restore.js rohj");
+        this._browser = await puppeteer.launch({headless: false,
+                                                args: ['--no-sandbox']});
+        console.log("DDEBUG trace ledger-password-backup-restore.js 4b8a");
     }
 
     async close (  )  {
@@ -124,7 +127,8 @@ class LedgerBackupRestore {
     }
 
     _makeEmptyTempDir (  )  {
-        var dir = `/tmp/${uuid.v1()}`;
+        // var dir = `/tmp/${uuid.v1()}`;
+        var dir = `/tmp/dir`;
         fs.mkdirSync(dir);
         return dir;
     }
@@ -181,7 +185,8 @@ async function appendNicks ( nicks, backupFilename, restoreFilename )  {
 }
 
 async function appendLedgerPasswords ( nicks )  {
-    var uid = uuid.v1();
+    // var uid = uuid.v1();
+    var uid = "uid";
     const backupFilename = `/tmp/${uid}-backup.json`;
     const restoreFilename = `/tmp/${uid}-restore.json`;
     var backupRestore = new LedgerBackupRestore();

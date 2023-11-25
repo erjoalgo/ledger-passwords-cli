@@ -1,0 +1,15 @@
+services:
+  cli:
+    build: ./cli
+    # devices:
+    #     - /dev/usb/hiddev0:/dev/usb/hiddev0
+    privileged: true
+    network_mode: host
+    environment:
+        - DISPLAY=:0
+    cap_add:
+        - SYS_ADMIN
+    volumes:
+        - /tmp/.X11-unix/:/tmp/.X11-unix/
+        - $HOME/.Xauthority:/home/pptruser/.Xauthority:rw
+        - /dev:/dev
